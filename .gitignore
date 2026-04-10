@@ -1,0 +1,23 @@
+## .NET
+bin/
+obj/
+publish/
+*.user
+*.suo
+*.cache
+*.pdb
+
+## Visual Studio
+.vs/
+*.userprefs
+launchSettings.json
+
+## OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+## IDE
+.idea/
+*.swp
+*~
