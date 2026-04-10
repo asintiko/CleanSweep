@@ -76,7 +76,23 @@ namespace CleanSweep
             _scanner.OnProgress += (p, l) => Dispatcher.BeginInvoke(() => UpdateProgress(p, l));
             LoadDiskInfo();
             RefreshFolderChips();
+            CleanupOldUpdate();
             _ = CheckForUpdatesAsync();
+        }
+
+        // Remove leftover .bak file from a previous self-update
+        private static void CleanupOldUpdate()
+        {
+            try
+            {
+                var exe = Environment.ProcessPath;
+                if (string.IsNullOrEmpty(exe)) return;
+                var bak = exe + ".bak";
+                if (File.Exists(bak)) File.Delete(bak);
+                var tmp = exe + ".update";
+                if (File.Exists(tmp)) File.Delete(tmp);
+            }
+            catch { }
         }
 
         // ─── Navigation ──────────────────────────────────────────────────
@@ -1421,10 +1437,84 @@ namespace CleanSweep
             FadeIn(UpdateBanner);
         }
 
-        private void OnUpdateClick(object sender, RoutedEventArgs e)
+        private async void OnUpdateClick(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrEmpty(_releaseUrl)) return;
-            Process.Start(new ProcessStartInfo(_releaseUrl) { UseShellExecute = true });
+
+            // If the URL is not a direct .exe download, fall back to browser
+            if (!_releaseUrl.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                Process.Start(new ProcessStartInfo(_releaseUrl) { UseShellExecute = true });
+                return;
+            }
+
+            BtnUpdate.IsEnabled    = false;
+            BtnUpdate.Content      = "Загрузка...";
+            UpdateDlPanel.Visibility = Visibility.Visible;
+            UpdateProgressBar.Value   = 0;
+            UpdateProgressText.Text   = "Подготовка...";
+
+            try
+            {
+                var currentExe = Environment.ProcessPath ?? Process.GetCurrentProcess().MainModule?.FileName;
+                if (string.IsNullOrEmpty(currentExe))
+                {
+                    Process.Start(new ProcessStartInfo(_releaseUrl) { UseShellExecute = true });
+                    return;
+                }
+
+                var tempPath = currentExe + ".update";
+                var backupPath = currentExe + ".bak";
+
+                using var http = new HttpClient();
+                http.DefaultRequestHeaders.UserAgent.ParseAdd("CleanSweep/" + AppVersion);
+                using var resp = await http.GetAsync(_releaseUrl, HttpCompletionOption.ResponseHeadersRead);
+                resp.EnsureSuccessStatusCode();
+
+                var totalBytes = resp.Content.Headers.ContentLength ?? -1;
+                await using var stream = await resp.Content.ReadAsStreamAsync();
+                await using var file   = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None);
+
+                var buffer = new byte[81920];
+                long downloaded = 0;
+                int read;
+                while ((read = await stream.ReadAsync(buffer)) > 0)
+                {
+                    await file.WriteAsync(buffer.AsMemory(0, read));
+                    downloaded += read;
+                    if (totalBytes > 0)
+                    {
+                        int pct = (int)(downloaded * 100 / totalBytes);
+                        UpdateProgressBar.Value = pct;
+                        UpdateProgressText.Text = $"{ScannerService.FormatSize(downloaded)} / {ScannerService.FormatSize(totalBytes)}";
+                    }
+                    else
+                    {
+                        UpdateProgressText.Text = $"Загружено: {ScannerService.FormatSize(downloaded)}";
+                    }
+                }
+
+                file.Close();
+                UpdateProgressText.Text = "Установка...";
+
+                // Rename current → .bak, new → current
+                if (File.Exists(backupPath)) File.Delete(backupPath);
+                File.Move(currentExe, backupPath);
+                File.Move(tempPath, currentExe);
+
+                // Launch new version and exit
+                UpdateProgressText.Text = "Перезапуск...";
+                Process.Start(new ProcessStartInfo(currentExe) { UseShellExecute = true });
+                Application.Current.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                UpdateProgressText.Text = "Ошибка загрузки";
+                BtnUpdate.IsEnabled     = true;
+                BtnUpdate.Content       = "Открыть в браузере";
+                MessageBox.Show($"Не удалось скачать обновление:\n{ex.Message}\n\nНажмите кнопку чтобы скачать вручную.",
+                    "CleanSweep", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         // ─── Disk info ───────────────────────────────────────────────────
