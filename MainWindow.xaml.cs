@@ -183,24 +183,33 @@ namespace CleanSweep
 
         private async void OnScan(object sender, RoutedEventArgs e)
         {
-            // For tabs that use user-selected paths, ask scope if no custom folders selected
-            var fixedTabs = new HashSet<string> { "junk", "startup", "shortcuts" };
-            if (!fixedTabs.Contains(_currentTab) && _scanFolders == null)
+            // Tabs with fixed system paths — no folder choice needed
+            // Disk analyzer — always scans all drive roots by design
+            var noDialogTabs = new HashSet<string> { "junk", "startup", "shortcuts", "disk" };
+
+            // For file-based scans: offer to pick a folder if none selected
+            if (!noDialogTabs.Contains(_currentTab) && _scanFolders == null)
             {
-                var result = MessageBox.Show(
-                    "Выберите область сканирования:\n\n" +
-                    "«Да» — выбрать конкретные папки\n" +
-                    "«Нет» — сканировать весь компьютер",
-                    "CleanSweep",
+                var hint = _currentTab switch
+                {
+                    "dup_images" => "Выберите папку с фотографиями или просканируйте весь компьютер.",
+                    "dup_files"  => "Выберите папку для поиска дубликатов или просканируйте всё.",
+                    "empty"      => "Выберите папку или просканируйте все диски.",
+                    _            => "Выберите папку или просканируйте весь компьютер.",
+                };
+                var dlgResult = MessageBox.Show(
+                    hint + "\n\n«Да» — выбрать папку\n«Нет» — весь компьютер",
+                    "Область сканирования",
                     MessageBoxButton.YesNoCancel,
                     MessageBoxImage.Question);
 
-                if (result == MessageBoxResult.Cancel) return;
-                if (result == MessageBoxResult.Yes)
+                if (dlgResult == MessageBoxResult.Cancel) return;
+                if (dlgResult == MessageBoxResult.Yes)
                 {
                     OnAddFolder(sender, e);
-                    if (_scanFolders == null) return; // user cancelled the folder picker
+                    if (_scanFolders == null) return; // user cancelled folder picker
                 }
+                // No → proceed with all drives
             }
 
             _cts = new CancellationTokenSource();
@@ -683,15 +692,6 @@ namespace CleanSweep
                 cb.Unchecked += (s, ev) => { dup.IsSelected = false; UpdateCount(); };
                 rowDock.Children.Add(cb);
 
-                // File row (thumb + name + size)
-                var fileRow = BuildFileRow(dup);
-                foreach (UIElement child in fileRow.Children.OfType<UIElement>().ToList())
-                    rowDock.Children.Add(child);
-
-                // Need to re-add since we can't share children — rebuild inline
-                rowDock.Children.Clear();
-                rowDock.Children.Add(new Border { Width = 26 });
-                rowDock.Children.Add(cb);
                 if (IsImageFile(dup.FullPath))
                     rowDock.Children.Add(BuildThumb(dup));
 
