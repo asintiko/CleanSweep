@@ -59,8 +59,16 @@
                                 Padding="0,5" FontSize="10" Margin="0,8,0,0"
                                 HorizontalAlignment="Stretch"
                                 Click="OnUpdateClick">
-                            Скачать
+                            Скачать и установить
                         </Button>
+                        <!-- Download progress (hidden until download starts) -->
+                        <StackPanel x:Name="UpdateDlPanel" Visibility="Collapsed" Margin="0,6,0,0">
+                            <ProgressBar x:Name="UpdateProgressBar" Height="4" Maximum="100"
+                                         Foreground="#1F6FEB" Background="#21262D"
+                                         BorderThickness="0"/>
+                            <TextBlock x:Name="UpdateProgressText" Text="Загрузка..."
+                                       FontSize="9" Foreground="#768390" Margin="0,3,0,0"/>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
