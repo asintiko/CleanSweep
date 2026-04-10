@@ -1,0 +1,404 @@
+<Window x:Class="CleanSweep.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CleanSweep" Width="1080" Height="700"
+        MinWidth="780" MinHeight="520"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgBrush}">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ═══ SIDEBAR ═══ -->
+        <Border Grid.Column="0" Background="#0D1117"
+                BorderBrush="#21262D" BorderThickness="0,0,1,0">
+            <DockPanel>
+
+                <!-- Logo -->
+                <Border DockPanel.Dock="Top" Padding="16,15,16,13"
+                        BorderBrush="#21262D" BorderThickness="0,0,0,1">
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="36" Height="36" CornerRadius="8"
+                                Background="#1F6FEB" VerticalAlignment="Center" Margin="0,0,11,0">
+                            <Path Data="{StaticResource IconShield}" Fill="White"
+                                  Stretch="Uniform" Width="18" Height="18"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="CleanSweep" FontSize="15" FontWeight="Bold"
+                                       Foreground="White" FontFamily="Segoe UI"/>
+                            <TextBlock Text="System Optimizer" FontSize="9"
+                                       Foreground="#768390" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Update banner (above disk info) -->
+                <Border x:Name="UpdateBanner" DockPanel.Dock="Bottom"
+                        Visibility="Collapsed"
+                        Margin="10,0,10,6" Padding="11,9"
+                        CornerRadius="8" Background="#0D2137"
+                        BorderBrush="#1F6FEB" BorderThickness="1">
+                    <StackPanel>
+                        <DockPanel>
+                            <Path DockPanel.Dock="Left" Data="{StaticResource IconDownload}"
+                                  Fill="#79C0FF" Stretch="Uniform"
+                                  Width="13" Height="13" Margin="0,0,7,0"
+                                  VerticalAlignment="Center"/>
+                            <StackPanel>
+                                <TextBlock Text="Доступно обновление"
+                                           FontSize="10" FontWeight="SemiBold" Foreground="#79C0FF"/>
+                                <TextBlock x:Name="UpdateVersionText"
+                                           FontSize="9" Foreground="#768390" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </DockPanel>
+                        <Button x:Name="BtnUpdate" Style="{StaticResource AccentBtn}"
+                                Padding="0,5" FontSize="10" Margin="0,8,0,0"
+                                HorizontalAlignment="Stretch"
+                                Click="OnUpdateClick">
+                            Скачать
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <!-- Disk info -->
+                <Border DockPanel.Dock="Bottom" Margin="12,0,12,14" Padding="11,10"
+                        CornerRadius="8" Background="#161B22"
+                        BorderBrush="#30363D" BorderThickness="1">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Path Data="{StaticResource IconDisk}" Fill="#768390"
+                                  Stretch="Uniform" Width="11" Height="11" Margin="0,0,6,0"/>
+                            <TextBlock Text="STORAGE" FontSize="9" Foreground="#768390"
+                                       FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <ItemsControl x:Name="DiskList"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Nav label -->
+                <TextBlock DockPanel.Dock="Top" Text="ИНСТРУМЕНТЫ"
+                           FontSize="9" Foreground="#768390" FontWeight="SemiBold"
+                           Margin="22,14,0,4"/>
+
+                <!-- Navigation -->
+                <StackPanel>
+                    <RadioButton x:Name="NavDupImages" Style="{StaticResource NavBtn}"
+                                 IsChecked="True" Checked="NavChanged" Tag="dup_images">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource IconCamera}" Fill="#768390"
+                                  Stretch="Uniform" Width="16" Height="16"
+                                  Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Дубликаты фото" FontSize="12.5"
+                                       Foreground="#CDD9E5" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <RadioButton x:Name="NavDupFiles" Style="{StaticResource NavBtn}"
+                                 Checked="NavChanged" Tag="dup_files">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource IconFile}" Fill="#768390"
+                                  Stretch="Uniform" Width="16" Height="16"
+                                  Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Дубликаты файлов" FontSize="12.5"
+                                       Foreground="#CDD9E5" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <RadioButton x:Name="NavJunk" Style="{StaticResource NavBtn}"
+                                 Checked="NavChanged" Tag="junk">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource IconBroom}" Fill="#768390"
+                                  Stretch="Uniform" Width="16" Height="16"
+                                  Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Очистка мусора" FontSize="12.5"
+                                       Foreground="#CDD9E5" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <RadioButton x:Name="NavLarge" Style="{StaticResource NavBtn}"
+                                 Checked="NavChanged" Tag="large">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource IconPackage}" Fill="#768390"
+                                  Stretch="Uniform" Width="16" Height="16"
+                                  Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Большие файлы" FontSize="12.5"
+                                       Foreground="#CDD9E5" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <RadioButton x:Name="NavDisk" Style="{StaticResource NavBtn}"
+                                 Checked="NavChanged" Tag="disk">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource IconBarChart}" Fill="#768390"
+                                  Stretch="Uniform" Width="16" Height="16"
+                                  Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Анализ диска" FontSize="12.5"
+                                       Foreground="#CDD9E5" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <RadioButton x:Name="NavEmpty" Style="{StaticResource NavBtn}"
+                                 Checked="NavChanged" Tag="empty">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource IconFolder}" Fill="#768390"
+                                  Stretch="Uniform" Width="16" Height="16"
+                                  Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Пустые папки" FontSize="12.5"
+                                       Foreground="#CDD9E5" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <RadioButton x:Name="NavStartup" Style="{StaticResource NavBtn}"
+                                 Checked="NavChanged" Tag="startup">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource IconStartup}" Fill="#768390"
+                                  Stretch="Uniform" Width="16" Height="16"
+                                  Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Автозапуск" FontSize="12.5"
+                                       Foreground="#CDD9E5" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <RadioButton x:Name="NavShortcuts" Style="{StaticResource NavBtn}"
+                                 Checked="NavChanged" Tag="shortcuts">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource IconLink}" Fill="#768390"
+                                  Stretch="Uniform" Width="16" Height="16"
+                                  Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Сломанные ярлыки" FontSize="12.5"
+                                       Foreground="#CDD9E5" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ═══ MAIN AREA ═══ -->
+        <DockPanel Grid.Column="1">
+
+            <!-- Top bar -->
+            <Border DockPanel.Dock="Top" Padding="24,11"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                <DockPanel>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path x:Name="TabIcon" Data="{StaticResource IconCamera}"
+                              Fill="{StaticResource AccentBrush}"
+                              Stretch="Uniform" Width="18" Height="18" Margin="0,0,10,0"/>
+                        <TextBlock x:Name="TabTitle" Text="Дубликаты фото"
+                                   FontSize="18" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                    </StackPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button x:Name="BtnDelete" Style="{StaticResource DangerBtn}"
+                                Click="OnDelete" Visibility="Collapsed" Margin="0,0,8,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource IconTrash}" Fill="White"
+                                      Stretch="Uniform" Width="13" Height="13"
+                                      Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtDeleteLabel" Text="Удалить выбранные"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnCancel" Style="{StaticResource BtnBase}"
+                                Background="{StaticResource DangerLightBrush}"
+                                Foreground="{StaticResource DangerBrush}"
+                                Content="Отмена" Click="OnCancel"
+                                Visibility="Collapsed" Margin="0,0,8,0"/>
+                        <Button x:Name="BtnScan" Style="{StaticResource AccentBtn}" Click="OnScan">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="{StaticResource IconScan}" Fill="White"
+                                      Stretch="Uniform" Width="13" Height="13"
+                                      Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtScanLabel" Text="Сканировать"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Folder selector bar -->
+            <Border DockPanel.Dock="Top" x:Name="FolderBar" Padding="24,7,16,7"
+                    Background="{StaticResource BgBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource BtnBase}"
+                            Background="{StaticResource SurfaceBrush}"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                            Foreground="{StaticResource TextSecondaryBrush}"
+                            Padding="10,5" FontSize="11"
+                            Click="OnAddFolder" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource IconPlus}"
+                                  Fill="{StaticResource AccentBrush}"
+                                  Stretch="Uniform" Width="11" Height="11"
+                                  Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Добавить папку" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Скан:" FontSize="11"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                      VerticalScrollBarVisibility="Disabled"
+                                      VerticalAlignment="Center">
+                            <StackPanel x:Name="FolderChips" Orientation="Horizontal"/>
+                        </ScrollViewer>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Progress -->
+            <Border DockPanel.Dock="Top" x:Name="ProgressPanel" Visibility="Collapsed"
+                    Padding="20,14" Background="#F0F6FF"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                <DockPanel>
+                    <!-- Spinner (bigger, with glow + pulse) -->
+                    <Canvas Width="48" Height="48" VerticalAlignment="Center" Margin="0,0,16,0"
+                            RenderTransformOrigin="0.5,0.5">
+                        <Canvas.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform x:Name="SpinnerScale" ScaleX="1" ScaleY="1"/>
+                                <RotateTransform x:Name="SpinnerRotate"/>
+                            </TransformGroup>
+                        </Canvas.RenderTransform>
+                        <!-- Track circle -->
+                        <Ellipse Width="40" Height="40" Canvas.Left="4" Canvas.Top="4"
+                                 Stroke="#E2E8F0" StrokeThickness="3" Fill="Transparent"/>
+                        <!-- Arc (¾ circle) with glow -->
+                        <Path StrokeThickness="3" Stroke="#0969DA">
+                            <Path.Effect>
+                                <DropShadowEffect Color="#0969DA" BlurRadius="6"
+                                                  ShadowDepth="0" Opacity="0.45"/>
+                            </Path.Effect>
+                            <Path.Data>
+                                <PathGeometry>
+                                    <PathFigure StartPoint="24,4" IsClosed="False">
+                                        <ArcSegment Point="4,24" Size="20,20"
+                                                    IsLargeArc="True" SweepDirection="Clockwise"/>
+                                    </PathFigure>
+                                </PathGeometry>
+                            </Path.Data>
+                        </Path>
+                    </Canvas>
+                    <!-- Text + bar -->
+                    <StackPanel VerticalAlignment="Center">
+                        <DockPanel Margin="0,0,0,7">
+                            <TextBlock x:Name="TxtProgressPct" Text="0%"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       FontSize="18" FontWeight="Bold" Margin="0,0,10,0"/>
+                            <TextBlock x:Name="TxtProgressLabel"
+                                       Foreground="{StaticResource TextDimBrush}"
+                                       FontSize="13" HorizontalAlignment="Right"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </DockPanel>
+                        <ProgressBar x:Name="ProgressBarMain"
+                                     Style="{StaticResource AccentProgress}" Maximum="100"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Content -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,18,24,18">
+                <StackPanel>
+
+                    <!-- Empty state -->
+                    <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" Margin="0,60,0,0">
+                        <Border Width="80" Height="80" CornerRadius="40"
+                                Background="{StaticResource SurfaceBrush}"
+                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                HorizontalAlignment="Center" Margin="0,0,0,18">
+                            <Path x:Name="EmptyIcon" Data="{StaticResource IconCamera}"
+                                  Fill="{StaticResource TextMutedBrush}"
+                                  Stretch="Uniform" Width="34" Height="34"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock x:Name="TxtEmptyTitle" Text="Найду одинаковые фотографии"
+                                   FontSize="17" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock x:Name="TxtEmptyHint"
+                                   Text="Нажмите «Сканировать» — проверю весь компьютер"
+                                   FontSize="13" Foreground="{StaticResource TextMutedBrush}"
+                                   HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                    </StackPanel>
+
+                    <!-- Summary bar -->
+                    <Border x:Name="SummaryPanel" Visibility="Collapsed"
+                            Margin="0,0,0,14"
+                            Background="{StaticResource SurfaceBrush}"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="16,12">
+                        <StackPanel x:Name="SummaryContent" Orientation="Horizontal"/>
+                    </Border>
+
+                    <!-- Results -->
+                    <ItemsControl x:Name="ResultsList" Visibility="Collapsed"/>
+
+                    <!-- Success state -->
+                    <StackPanel x:Name="SuccessState" Visibility="Collapsed"
+                                HorizontalAlignment="Center" Margin="0,60,0,0">
+                        <Border Width="72" Height="72" CornerRadius="36"
+                                Background="{StaticResource AccentLightBrush}"
+                                HorizontalAlignment="Center" Margin="0,0,0,18">
+                            <Path Data="{StaticResource IconCheck}"
+                                  Fill="{StaticResource AccentBrush}"
+                                  Stretch="Uniform" Width="30" Height="30"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock x:Name="TxtSuccess" Text="Готово!"
+                                   FontSize="20" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                        <TextBlock x:Name="TxtSuccessDetail" FontSize="13"
+                                   Foreground="{StaticResource TextDimBrush}"
+                                   HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                    </StackPanel>
+
+                </StackPanel>
+            </ScrollViewer>
+        </DockPanel>
+
+        <!-- ═══ PHOTO PREVIEW OVERLAY — last child = renders on top of everything ═══ -->
+        <Grid x:Name="PreviewOverlay" Grid.ColumnSpan="2" Visibility="Collapsed"
+              Background="#BF000000"
+              MouseLeftButtonUp="OnPreviewBackdropClick">
+            <Border MaxWidth="940" MaxHeight="720"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    CornerRadius="12" Background="#161B22"
+                    BorderBrush="#30363D" BorderThickness="1"
+                    MouseLeftButtonUp="OnPreviewCardClick">
+                <StackPanel>
+                    <DockPanel Margin="18,13,10,10">
+                        <Button DockPanel.Dock="Right" Width="32" Height="32" Padding="0"
+                                Background="Transparent" BorderThickness="0"
+                                FontSize="18" Foreground="#768390"
+                                Click="OnPreviewClose" VerticalAlignment="Center"
+                                Cursor="Hand">&#215;</Button>
+                        <TextBlock x:Name="PreviewFileName" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="#CDD9E5" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"/>
+                    </DockPanel>
+                    <Grid MinWidth="340" MinHeight="200">
+                        <TextBlock x:Name="PreviewLoadingText" Text="Загрузка..."
+                                   Foreground="#768390" FontSize="13"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Image x:Name="PreviewImage"
+                               MaxWidth="900" MaxHeight="580"
+                               Stretch="Uniform" HorizontalAlignment="Center"
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Grid>
+                    <TextBlock x:Name="PreviewFileInfo" FontSize="11" Foreground="#768390"
+                               Margin="18,8,18,15" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+    </Grid>
+</Window>
