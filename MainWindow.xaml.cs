@@ -158,11 +158,25 @@ namespace CleanSweep
 
         private void ShowEmpty()
         {
+            StopEmptyStateAnimation();
             EmptyState.Visibility   = Visibility.Visible;
             ResultsList.Visibility  = Visibility.Collapsed;
             SummaryPanel.Visibility = Visibility.Collapsed;
             SuccessState.Visibility = Visibility.Collapsed;
             BtnDelete.Visibility    = Visibility.Collapsed;
+            StartEmptyStateAnimation();
+        }
+
+        private void ShowSuccessScreen(string title, string detail)
+        {
+            StopEmptyStateAnimation();
+            SuccessState.Visibility = Visibility.Visible;
+            TxtSuccess.Text         = title;
+            TxtSuccessDetail.Text   = detail;
+            ResultsList.Visibility  = Visibility.Collapsed;
+            SummaryPanel.Visibility = Visibility.Collapsed;
+            BtnDelete.Visibility    = Visibility.Collapsed;
+            PlaySuccessBounce();
         }
 
         // ─── Scan ────────────────────────────────────────────────────────
@@ -190,6 +204,7 @@ namespace CleanSweep
             }
 
             _cts = new CancellationTokenSource();
+            StopEmptyStateAnimation();
             BtnScan.IsEnabled       = false;
             TxtScanLabel.Text       = "Сканирование...";
             BtnCancel.Visibility    = Visibility.Visible;
@@ -303,6 +318,87 @@ namespace CleanSweep
             el.BeginAnimation(UIElement.OpacityProperty, anim);
         }
 
+        // Shows results list with slide-up stagger animation on items
+        private void ShowResultsAnimated()
+        {
+            StopEmptyStateAnimation();
+            EmptyState.Visibility   = Visibility.Collapsed;
+            SuccessState.Visibility = Visibility.Collapsed;
+
+            FadeIn(SummaryPanel);
+            ResultsList.Visibility = Visibility.Visible;
+            ResultsList.Opacity    = 1;
+
+            // Apply stagger animation to individual result items
+            if (ResultsList.ItemsSource is List<UIElement> items)
+            {
+                int delay = 0;
+                foreach (var item in items)
+                {
+                    SlideUpIn(item, delay);
+                    delay += 30; // 30ms stagger between cards
+                    if (delay > 400) delay = 400; // cap so large lists don't wait forever
+                }
+            }
+        }
+
+        // Slide-up + fade for result cards with stagger
+        private static void SlideUpIn(UIElement el, int delayMs = 0)
+        {
+            if (el.RenderTransform is not TranslateTransform)
+                el.RenderTransform = new TranslateTransform(0, 18);
+            else
+                ((TranslateTransform)el.RenderTransform).Y = 18;
+
+            el.Opacity = 0;
+
+            var dur = new Duration(TimeSpan.FromMilliseconds(300));
+            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+            var begin = TimeSpan.FromMilliseconds(delayMs);
+
+            var fadeAnim = new DoubleAnimation(0, 1, dur) { BeginTime = begin, EasingFunction = ease };
+            var slideAnim = new DoubleAnimation(18, 0, dur) { BeginTime = begin, EasingFunction = ease };
+
+            el.BeginAnimation(UIElement.OpacityProperty, fadeAnim);
+            ((TranslateTransform)el.RenderTransform).BeginAnimation(TranslateTransform.YProperty, slideAnim);
+        }
+
+        // Floating hover animation for empty-state icon
+        private void StartEmptyStateAnimation()
+        {
+            var floatUp = new DoubleAnimation(0, -6, new Duration(TimeSpan.FromSeconds(1.5)))
+                { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever,
+                  EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } };
+            EmptyIconFloat.BeginAnimation(TranslateTransform.YProperty, floatUp);
+
+            var breathe = new DoubleAnimation(1.0, 1.04, new Duration(TimeSpan.FromSeconds(2.0)))
+                { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever,
+                  EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } };
+            EmptyIconScale.BeginAnimation(ScaleTransform.ScaleXProperty, breathe);
+            EmptyIconScale.BeginAnimation(ScaleTransform.ScaleYProperty, breathe);
+        }
+
+        private void StopEmptyStateAnimation()
+        {
+            EmptyIconFloat.BeginAnimation(TranslateTransform.YProperty, null);
+            EmptyIconScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            EmptyIconScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        }
+
+        // Success checkmark bounce (scale 0 → 1.15 → 1.0)
+        private void PlaySuccessBounce()
+        {
+            var scaleUp = new DoubleAnimationUsingKeyFrames { Duration = new Duration(TimeSpan.FromMilliseconds(500)) };
+            scaleUp.KeyFrames.Add(new EasingDoubleKeyFrame(0,    KeyTime.FromPercent(0)));
+            scaleUp.KeyFrames.Add(new EasingDoubleKeyFrame(1.15, KeyTime.FromPercent(0.55),
+                new CubicEase { EasingMode = EasingMode.EaseOut }));
+            scaleUp.KeyFrames.Add(new EasingDoubleKeyFrame(1.0,  KeyTime.FromPercent(1.0),
+                new CubicEase { EasingMode = EasingMode.EaseInOut }));
+
+            SuccessScale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleUp);
+            SuccessScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleUp.Clone());
+        }
+
         // ─── Photo Preview ───────────────────────────────────────────────
 
         private void OpenPreview(string path, string fileName, string sizeHuman, string modified)
@@ -385,12 +481,7 @@ namespace CleanSweep
 
             if (groups.Count == 0)
             {
-                SuccessState.Visibility = Visibility.Visible;
-                TxtSuccess.Text         = "Дубликаты не найдены";
-                TxtSuccessDetail.Text   = "Все файлы уникальны";
-                ResultsList.Visibility  = Visibility.Collapsed;
-                SummaryPanel.Visibility = Visibility.Collapsed;
-                BtnDelete.Visibility    = Visibility.Collapsed;
+                ShowSuccessScreen("Дубликаты не найдены", "Все файлы уникальны");
                 return;
             }
 
@@ -404,8 +495,7 @@ namespace CleanSweep
             var items = new List<UIElement>();
             foreach (var g in groups) items.Add(BuildGroup(g));
             ResultsList.ItemsSource = items;
-            FadeIn(ResultsList);
-            FadeIn(SummaryPanel);
+            ShowResultsAnimated();
             TxtDeleteLabel.Text  = "Удалить выбранные";
             BtnDelete.Visibility = Visibility.Visible;
             UpdateCount();
@@ -644,12 +734,7 @@ namespace CleanSweep
             int tc = cats.Sum(c => c.FileCount);
             if (tc == 0)
             {
-                SuccessState.Visibility = Visibility.Visible;
-                TxtSuccess.Text         = "Мусор не найден";
-                TxtSuccessDetail.Text   = "Система чистая";
-                SummaryPanel.Visibility = Visibility.Collapsed;
-                ResultsList.Visibility  = Visibility.Collapsed;
-                BtnDelete.Visibility    = Visibility.Collapsed;
+                ShowSuccessScreen("Мусор не найден", "Система чистая");
                 return;
             }
 
@@ -712,8 +797,7 @@ namespace CleanSweep
             }
 
             ResultsList.ItemsSource = items;
-            FadeIn(ResultsList);
-            FadeIn(SummaryPanel);
+            ShowResultsAnimated();
             TxtDeleteLabel.Text  = "Очистить выбранные";
             BtnDelete.Visibility = Visibility.Visible;
             UpdateCount();
@@ -728,12 +812,7 @@ namespace CleanSweep
 
             if (files.Count == 0)
             {
-                SuccessState.Visibility = Visibility.Visible;
-                TxtSuccess.Text         = "Крупных файлов не найдено";
-                TxtSuccessDetail.Text   = "";
-                SummaryPanel.Visibility = Visibility.Collapsed;
-                ResultsList.Visibility  = Visibility.Collapsed;
-                BtnDelete.Visibility    = Visibility.Collapsed;
+                ShowSuccessScreen("Крупных файлов не найдено", "");
                 return;
             }
 
@@ -794,8 +873,7 @@ namespace CleanSweep
             }
 
             ResultsList.ItemsSource = items;
-            FadeIn(ResultsList);
-            FadeIn(SummaryPanel);
+            ShowResultsAnimated();
             TxtDeleteLabel.Text  = "Удалить выбранные";
             BtnDelete.Visibility = Visibility.Visible;
             UpdateCount();
@@ -810,12 +888,7 @@ namespace CleanSweep
 
             if (folders.Count == 0)
             {
-                SuccessState.Visibility = Visibility.Visible;
-                TxtSuccess.Text         = "Нет данных";
-                TxtSuccessDetail.Text   = "";
-                SummaryPanel.Visibility = Visibility.Collapsed;
-                ResultsList.Visibility  = Visibility.Collapsed;
-                BtnDelete.Visibility    = Visibility.Collapsed;
+                ShowSuccessScreen("Нет данных", "");
                 return;
             }
 
@@ -872,8 +945,7 @@ namespace CleanSweep
             }
 
             ResultsList.ItemsSource = items;
-            FadeIn(ResultsList);
-            FadeIn(SummaryPanel);
+            ShowResultsAnimated();
             BtnDelete.Visibility = Visibility.Collapsed;
             UpdateCount();
         }
@@ -887,12 +959,7 @@ namespace CleanSweep
 
             if (folders.Count == 0)
             {
-                SuccessState.Visibility = Visibility.Visible;
-                TxtSuccess.Text         = "Пустых папок нет";
-                TxtSuccessDetail.Text   = "Всё в порядке";
-                SummaryPanel.Visibility = Visibility.Collapsed;
-                ResultsList.Visibility  = Visibility.Collapsed;
-                BtnDelete.Visibility    = Visibility.Collapsed;
+                ShowSuccessScreen("Пустых папок нет", "Всё в порядке");
                 return;
             }
 
@@ -935,8 +1002,7 @@ namespace CleanSweep
             }
 
             ResultsList.ItemsSource = items;
-            FadeIn(ResultsList);
-            FadeIn(SummaryPanel);
+            ShowResultsAnimated();
             TxtDeleteLabel.Text  = "Удалить пустые папки";
             BtnDelete.Visibility = Visibility.Visible;
             UpdateCount();
@@ -951,12 +1017,7 @@ namespace CleanSweep
 
             if (startups.Count == 0)
             {
-                SuccessState.Visibility = Visibility.Visible;
-                TxtSuccess.Text         = "Записей автозапуска нет";
-                TxtSuccessDetail.Text   = "";
-                SummaryPanel.Visibility = Visibility.Collapsed;
-                ResultsList.Visibility  = Visibility.Collapsed;
-                BtnDelete.Visibility    = Visibility.Collapsed;
+                ShowSuccessScreen("Записей автозапуска нет", "");
                 return;
             }
 
@@ -1015,8 +1076,7 @@ namespace CleanSweep
             }
 
             ResultsList.ItemsSource = items;
-            FadeIn(ResultsList);
-            FadeIn(SummaryPanel);
+            ShowResultsAnimated();
             TxtDeleteLabel.Text  = "Удалить из автозапуска";
             BtnDelete.Visibility = Visibility.Visible;
             UpdateCount();
@@ -1031,12 +1091,7 @@ namespace CleanSweep
 
             if (shortcuts.Count == 0)
             {
-                SuccessState.Visibility = Visibility.Visible;
-                TxtSuccess.Text         = "Сломанных ярлыков нет";
-                TxtSuccessDetail.Text   = "Все ярлыки указывают на существующие файлы";
-                SummaryPanel.Visibility = Visibility.Collapsed;
-                ResultsList.Visibility  = Visibility.Collapsed;
-                BtnDelete.Visibility    = Visibility.Collapsed;
+                ShowSuccessScreen("Сломанных ярлыков нет", "Все ярлыки указывают на существующие файлы");
                 return;
             }
 
@@ -1091,8 +1146,7 @@ namespace CleanSweep
             }
 
             ResultsList.ItemsSource = items;
-            FadeIn(ResultsList);
-            FadeIn(SummaryPanel);
+            ShowResultsAnimated();
             TxtDeleteLabel.Text  = "Удалить ярлыки";
             BtnDelete.Visibility = Visibility.Visible;
             UpdateCount();
@@ -1162,12 +1216,8 @@ namespace CleanSweep
             long freed = paths.Sum(p => { try { return new FileInfo(p).Length; } catch { return 0L; } });
             var (del, err) = ScannerService.DeleteFiles(paths);
 
-            SuccessState.Visibility = Visibility.Visible;
-            ResultsList.Visibility  = Visibility.Collapsed;
-            SummaryPanel.Visibility = Visibility.Collapsed;
-            BtnDelete.Visibility    = Visibility.Collapsed;
-            TxtSuccess.Text         = "Готово! Всё чисто";
-            TxtSuccessDetail.Text   = $"Удалено: {del}  ·  Освобождено: {ScannerService.FormatSize(freed)}  ·  Ошибок: {err}";
+            ShowSuccessScreen("Готово! Всё чисто",
+                $"Удалено: {del}  ·  Освобождено: {ScannerService.FormatSize(freed)}  ·  Ошибок: {err}");
 
             switch (_currentTab)
             {
