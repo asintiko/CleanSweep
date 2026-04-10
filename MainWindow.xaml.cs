@@ -23,7 +23,7 @@ namespace CleanSweep
         // ── Update check ─────────────────────────────────────────────────
         // Set to your GitHub repo ("username/reponame") to enable auto-updates.
         // Leave empty to disable.
-        private const string GitHubRepo  = "kulacidmyt/CleanSweep";
+        private const string GitHubRepo  = "asintiko/CleanSweep";
         private const string AppVersion  = "1.0.0";
         private string? _releaseUrl;
 
